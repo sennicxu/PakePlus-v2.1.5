@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>权限管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .permission-level-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .permission-level-tag .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .permission-level-tag.readonly {
+            background: #f0f0f0;
+            color: #999;
+        }
+        .permission-level-tag.readonly .dot {
+            background: #999;
+        }
+        .permission-level-tag.readwrite {
+            background: #e8f0fe;
+            color: #2d6a9f;
+        }
+        .permission-level-tag.readwrite .dot {
+            background: #2d6a9f;
+        }
+        .permission-level-tag.full {
+            background: #fff7e6;
+            color: #faad14;
+        }
+        .permission-level-tag.full .dot {
+            background: #faad14;
+        }
+    </style>
+</head>
+<body>
+    <div id="tableWrap"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/table.js"></script>
+    <script>
+        // ============================================================
+        //  权限管理 - 表格配置
+        // ============================================================
+        var permissionTable = new DataTable({
+            container: '#tableWrap',
+            title: '权限管理',
+            subtitle: '管理用户的门店访问权限',
+            icon: '🔑',
+            badge: '共 0 条',
+
+            api: PermissionAPI,
+
+            searchFields: [
+                { value: 'username', label: '用户名' },
+                { value: 'store_name', label: '门店名称' }
+            ],
+
+            advancedFields: [
+                { value: 'username', label: '用户名' },
+                { value: 'store_name', label: '门店名称' },
+                { value: 'permission_level', label: '权限级别' }
+            ],
+
+            stats: [
+                { id: 'statTotal', label: '权限总数', icon: '🔑', calc: function(row) { return 1; } },
+                { id: 'statReadonly', label: '只读', icon: '👁️', color: 'gray', calc: function(row) { return row.PermissionLevel === 1 ? 1 : 0; } },
+                { id: 'statReadwrite', label: '读写', icon: '✏️', color: 'blue', calc: function(row) { return row.PermissionLevel === 2 ? 1 : 0; } },
+                { id: 'statFull', label: '完全控制', icon: '👑', color: 'orange', calc: function(row) { return row.PermissionLevel === 3 ? 1 : 0; } }
+            ],
+
+            columns: [
+                { field: 'Id', label: 'ID', width: '60px' },
+                { field: 'UserName', label: '用户名', width: '120px' },
+                { field: 'FullName', label: '用户姓名', width: '100px' },
+                { field: 'StoreCode', label: '门店代码', width: '120px' },
+                { field: 'StoreName', label: '门店名称', width: '150px' },
+                {
+                    field: 'PermissionLevel',
+                    label: '权限级别',
+                    width: '120px',
+                    render: function(value) {
+                        var map = {
+                            1: { text: '只读', cls: 'readonly' },
+                            2: { text: '读写', cls: 'readwrite' },
+                            3: { text: '完全控制', cls: 'full' }
+                        };
+                        var info = map[value] || { text: '未知', cls: 'readonly' };
+                        return '<span class="permission-level-tag ' + info.cls + '"><span class="dot"></span>' + info.text + '</span>';
+                    }
+                },
+                { field: 'CreateDate', label: '创建时间', width: '155px' }
+            ],
+
+            rowActions: [
+                { label: '编辑', class: 'btn-edit', icon: 'fas fa-edit', handler: 'showEdit' },
+                { label: '删除', class: 'btn-delete', icon: 'fas fa-trash', handler: 'showDelete' }
+            ],
+
+            // 表单字段 - 用户和门店选项稍后动态加载
+            formFields: [
+                {
+                    id: 'fUserId',
+                    field: 'user_id',
+                    label: '用户',
+                    type: 'select',
+                    required: true,
+                    options: [],
+                    placeholder: '请选择用户'
+                },
+                {
+                    id: 'fStoreId',
+                    field: 'store_id',
+                    label: '门店',
+                    type: 'select',
+                    required: true,
+                    options: [],
+                    placeholder: '请选择门店'
+                },
+                {
+                    id: 'fPermissionLevel',
+                    field: 'permission_level',
+                    label: '权限级别',
+                    type: 'select',
+                    required: true,
+                    options: [
+                        { value: 1, label: '只读' },
+                        { value: 2, label: '读写' },
+                        { value: 3, label: '完全控制' }
+                    ]
+                },
+                { id: 'fRemarks', field: 'remarks', label: '备注', type: 'textarea', placeholder: '请输入备注信息' }
+            ]
+        });
+
+        // ============================================================
+        //  加载用户和门店数据，填充下拉选项
+        // ============================================================
+        // 等待 table 初始化完成后加载数据
+        setTimeout(function() {
+            // 加载用户列表
+            UserAPI.list({}).then(function(users) {
+                var userOptions = [];
+                if (users && users.length > 0) {
+                    users.forEach(function(u) {
+                        userOptions.push({
+                            value: u.Id,
+                            label: u.FullName + ' (' + u.UserName + ')'
+                        });
+                    });
+                }
+                // 更新表单字段
+                permissionTable.config.formFields.forEach(function(field) {
+                    if (field.id === 'fUserId') {
+                        field.options = userOptions;
+                    }
+                });
+            }).catch(function(err) {
+                console.error('加载用户列表失败:', err);
+            });
+
+            // 加载门店列表
+            StoreAPI.list({}).then(function(stores) {
+                var storeOptions = [];
+                if (stores && stores.length > 0) {
+                    stores.forEach(function(s) {
+                        storeOptions.push({
+                            value: s.Id,
+                            label: s.StoreName + ' (' + s.StoreCode + ')'
+                        });
+                    });
+                }
+                permissionTable.config.formFields.forEach(function(field) {
+                    if (field.id === 'fStoreId') {
+                        field.options = storeOptions;
+                    }
+                });
+            }).catch(function(err) {
+                console.error('加载门店列表失败:', err);
+            });
+        }, 500);
+
+        // ============================================================
+        //  重写 buildFormHtml 以支持动态选项
+        // ============================================================
+        var originalBuildFormHtml = permissionTable.buildFormHtml;
+        permissionTable.buildFormHtml = function(data, action) {
+            var isEdit = action === 'edit';
+            var html = '<div class="modal-form">';
+            html += '<input type="hidden" id="editId" value="' + (isEdit ? (data.Id || '') : '') + '">';
+
+            // 获取用户选项
+            var userOptions = '';
+            var userField = null;
+            this.config.formFields.forEach(function(f) {
+                if (f.id === 'fUserId') userField = f;
+            });
+            if (userField && userField.options && userField.options.length > 0) {
+                userField.options.forEach(function(opt) {
+                    var selected = (isEdit && data.UserId == opt.value) ? 'selected' : '';
+                    userOptions += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
+                });
+            } else {
+                userOptions = '<option value="">请先加载用户数据</option>';
+            }
+
+            // 获取门店选项
+            var storeOptions = '';
+            var storeField = null;
+            this.config.formFields.forEach(function(f) {
+                if (f.id === 'fStoreId') storeField = f;
+            });
+            if (storeField && storeField.options && storeField.options.length > 0) {
+                storeField.options.forEach(function(opt) {
+                    var selected = (isEdit && data.StoreId == opt.value) ? 'selected' : '';
+                    storeOptions += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
+                });
+            } else {
+                storeOptions = '<option value="">请先加载门店数据</option>';
+            }
+
+            // 权限级别选项
+            var levelOptions = '';
+            var levelField = null;
+            this.config.formFields.forEach(function(f) {
+                if (f.id === 'fPermissionLevel') levelField = f;
+            });
+            if (levelField && levelField.options) {
+                levelField.options.forEach(function(opt) {
+                    var selected = (isEdit && data.PermissionLevel == opt.value) ? 'selected' : '';
+                    levelOptions += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
+                });
+            }
+
+            html += `
+                <div class="form-group">
+                    <label><span class="required">*</span> 用户</label>
+                    <select id="fUserId">${userOptions}</select>
+                </div>
+                <div class="form-group">
+                    <label><span class="required">*</span> 门店</label>
+                    <select id="fStoreId">${storeOptions}</select>
+                </div>
+                <div class="form-group">
+                    <label><span class="required">*</span> 权限级别</label>
+                    <select id="fPermissionLevel">${levelOptions}</select>
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="fRemarks" placeholder="请输入备注信息">${isEdit ? (data.Remarks || '') : ''}</textarea>
+                </div>
+                <div class="form-footer">
+                    <button class="btn btn-default" onclick="window._table.closeModal()">取消</button>
+                    <button class="btn btn-primary" onclick="window._table.submitForm()"><i class="fas fa-save"></i> ${isEdit ? '保存' : '添加'}</button>
+                </div>
+            `;
+            html += '</div>';
+            return html;
+        };
+
+        // ============================================================
+        //  重写 submitForm（处理外键字段）
+        // ============================================================
+        permissionTable.submitForm = function() {
+            var id = document.getElementById('editId').value;
+            var userId = document.getElementById('fUserId').value;
+            var storeId = document.getElementById('fStoreId').value;
+            var permissionLevel = document.getElementById('fPermissionLevel').value;
+            var remarks = document.getElementById('fRemarks').value.trim();
+
+            if (!userId) {
+                if (this.layer) this.layer.msg('请选择用户', {icon: 5});
+                return;
+            }
+            if (!storeId) {
+                if (this.layer) this.layer.msg('请选择门店', {icon: 5});
+                return;
+            }
+            if (!permissionLevel) {
+                if (this.layer) this.layer.msg('请选择权限级别', {icon: 5});
+                return;
+            }
+
+            var data = {
+                user_id: parseInt(userId),
+                store_id: parseInt(storeId),
+                permission_level: parseInt(permissionLevel),
+                remarks: remarks
+            };
+
+            if (!this.config.api) {
+                if (this.layer) this.layer.msg('API未配置', {icon: 5});
+                return;
+            }
+
+            if (this.layer) this.layer.load(1);
+
+            var promise;
+            if (id) {
+                data.id = parseInt(id);
+                if (typeof this.config.api.update !== 'function') {
+                    this.layer.closeAll('loading');
+                    this.layer.msg('API缺少 update 方法', {icon: 5});
+                    return;
+                }
+                promise = this.config.api.update(data);
+            } else {
+                if (typeof this.config.api.add !== 'function') {
+                    this.layer.closeAll('loading');
+                    this.layer.msg('API缺少 add 方法', {icon: 5});
+                    return;
+                }
+                promise = this.config.api.add(data);
+            }
+
+            var self = this;
+            promise.then(function() {
+                if (self.layer) {
+                    self.layer.closeAll('loading');
+                    self.layer.msg(id ? '更新成功' : '添加成功', {icon: 1});
+                }
+                self.closeModal();
+                self.loadData();
+            }).catch(function(err) {
+                if (self.layer) {
+                    self.layer.closeAll('loading');
+                    self.layer.msg('操作失败: ' + err, {icon: 5});
+                }
+            });
+        };
+    </script>
+</body>
+</html>
