@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>门店管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <div id="tableWrap"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/table.js"></script>
+    <script>
+        var storeTable = new DataTable({
+            container: '#tableWrap',
+            title: '门店管理',
+            subtitle: '管理所有门店信息',
+            icon: '🏢',
+            badge: '共 0 家',
+            api: StoreAPI,
+
+            // 开启导入导出
+            importable: true,
+            exportable: true,
+
+            searchFields: [
+                { value: 'store_name', label: '门店名称' },
+                { value: 'store_code', label: '门店代码' },
+                { value: 'address', label: '地址' },
+                { value: 'contact_person', label: '联系人' },
+                { value: 'contact_phone', label: '联系电话' }
+            ],
+
+            advancedFields: [
+                { value: 'store_name', label: '门店名称' },
+                { value: 'store_code', label: '门店代码' },
+                { value: 'address', label: '地址' },
+                { value: 'contact_person', label: '联系人' },
+                { value: 'contact_phone', label: '联系电话' },
+                { value: 'status', label: '状态' }
+            ],
+
+            stats: [
+                { id: 'statTotal', label: '门店总数', icon: '🏢', calc: function(row) { return 1; } },
+                { id: 'statActive', label: '已启用', icon: '✅', color: 'green', calc: function(row) { return row.Status === 1 ? 1 : 0; } },
+                { id: 'statInactive', label: '已停用', icon: '⛔', color: 'red', calc: function(row) { return row.Status === 0 ? 1 : 0; } },
+                { id: 'statContracts', label: '关联合同数', icon: '📄', color: 'orange', calc: function(row) { return 0; } }
+            ],
+
+            columns: [
+                { field: 'StoreCode', label: '门店代码', width: '120px' },
+                { field: 'StoreName', label: '门店名称', width: '130px' },
+                { field: 'Address', label: '地址', width: '150px' },
+                { field: 'ContactPerson', label: '联系人', width: '70px' },
+                { field: 'ContactPhone', label: '联系电话', width: '120px' },
+                {
+                    field: 'Status',
+                    label: '状态',
+                    width: '90px',
+                    render: function(value) {
+                        var text = value === 1 ? '启用' : '停用';
+                        var cls = value === 1 ? 'tag-green' : 'tag-red';
+                        return '<span class="tag ' + cls + '"><span class="dot"></span>' + text + '</span>';
+                    }
+                },
+                { field: 'CreateDate', label: '创建时间', width: '155px' }
+            ],
+
+            rowActions: [
+                { label: '编辑', class: 'btn-edit', icon: 'fas fa-edit', handler: 'showEdit' },
+                { label: '删除', class: 'btn-delete', icon: 'fas fa-trash', handler: 'showDelete' }
+            ],
+
+            formFields: [
+                { id: 'fStoreCode', field: 'StoreCode', label: '门店代码', type: 'text', required: true, placeholder: '请输入门店代码', help: '唯一标识，建议使用大写字母+数字' },
+                { id: 'fStoreName', field: 'StoreName', label: '门店名称', type: 'text', required: true, placeholder: '请输入门店名称' },
+                { id: 'fAddress', field: 'Address', label: '地址', type: 'text', placeholder: '请输入门店地址' },
+                { id: 'fContactPerson', field: 'ContactPerson', label: '联系人', type: 'text', placeholder: '请输入联系人姓名' },
+                { id: 'fContactPhone', field: 'ContactPhone', label: '联系电话', type: 'text', placeholder: '请输入电话' },
+                { id: 'fEmail', field: 'Email', label: '邮箱', type: 'email', placeholder: '请输入邮箱' },
+                {
+                    id: 'fStatus',
+                    field: 'Status',
+                    label: '状态',
+                    type: 'select',
+                    required: true,
+                    options: [
+                        { value: 1, label: '启用' },
+                        { value: 0, label: '停用' }
+                    ]
+                },
+                { id: 'fRemarks', field: 'Remarks', label: '备注', type: 'textarea', placeholder: '请输入备注信息' }
+            ]
+        });
+    </script>
+</body>
+</html>
