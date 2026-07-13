@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>门店收入统计</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <div id="tableWrap"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/table.js"></script>
+    <script>
+        var incomeTable = new DataTable({
+            container: '#tableWrap',
+            title: '门店收入统计',
+            subtitle: '各门店月度收入统计',
+            icon: '📈',
+            badge: '共 0 条',
+
+            api: ReportAPI,
+
+            importable: false,
+            exportable: true,
+
+            searchFields: [
+                { value: 'store_name', label: '门店名称' }
+            ],
+
+            advancedFields: [
+                { value: 'store_name', label: '门店名称' },
+                { value: 'bill_year', label: '年份' },
+                { value: 'bill_month', label: '月份' }
+            ],
+
+            stats: [
+                { id: 'statTotal', label: '记录数', icon: '📋', calc: function(row) { return 1; } },
+                { id: 'statRevenue', label: '总收入', icon: '💰', color: 'blue', calc: function(row) { return parseFloat(row.TotalReceivable) || 0; } },
+                { id: 'statCollected', label: '已收款', icon: '✅', color: 'green', calc: function(row) { return parseFloat(row.TotalPaid) || 0; } },
+                { id: 'statRate', label: '平均收款率', icon: '📊', color: 'orange', calc: function(row) { return parseFloat(row.CollectionRate) || 0; } }
+            ],
+
+            columns: [
+                { field: 'StoreName', label: '门店名称', width: '150px' },
+                { field: 'BillYear', label: '年份', width: '80px' },
+                { 
+                    field: 'BillMonth', 
+                    label: '月份', 
+                    width: '70px',
+                    render: function(value) {
+                        var monthNames = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                        return monthNames[value] || '-';
+                    }
+                },
+                { 
+                    field: 'ActiveContracts', 
+                    label: '合同数', 
+                    width: '70px',
+                    render: function(value) {
+                        return value || 0;
+                    }
+                },
+                { 
+                    field: 'TotalRent', 
+                    label: '租金', 
+                    width: '100px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '¥' + v.toFixed(2);
+                    }
+                },
+                { 
+                    field: 'TotalWater', 
+                    label: '水费', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '¥' + v.toFixed(2);
+                    }
+                },
+                { 
+                    field: 'TotalElectric', 
+                    label: '电费', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '¥' + v.toFixed(2);
+                    }
+                },
+                { 
+                    field: 'TotalReceivable', 
+                    label: '应收合计', 
+                    width: '110px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money" style="font-weight:700;">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'TotalPaid', 
+                    label: '已收金额', 
+                    width: '110px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money money-positive">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'TotalBalance', 
+                    label: '未收余额', 
+                    width: '110px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        var cls = v > 0 ? 'money-negative' : 'money-zero';
+                        return '<span class="money ' + cls + '">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'CollectionRate', 
+                    label: '收款率', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        var color = v >= 90 ? '#52c41a' : (v >= 50 ? '#faad14' : '#ff4d4f');
+                        return '<span style="color:' + color + ';font-weight:600;">' + v.toFixed(1) + '%</span>';
+                    }
+                }
+            ],
+
+            rowActions: [],
+            formFields: []
+        });
+
+        // ============================================================
+        //  重写 loadData（使用 ReportAPI.storeIncome）
+        // ============================================================
+        var originalLoadData3 = incomeTable.loadData;
+        incomeTable.loadData = function() {
+            var params = {};
+            var tab = document.querySelector('.search-tabs .tab.active');
+            var tabName = tab ? tab.dataset.tab : 'quick';
+
+            if (tabName === 'quick') {
+                var field = document.getElementById('quickField');
+                var value = document.getElementById('quickValue');
+                if (field && value && value.value.trim()) {
+                    params[field.value] = value.value.trim();
+                }
+            } else {
+                var conditions = incomeTable.buildConditions();
+                if (conditions.length > 0) {
+                    params.conditions = conditions;
+                    var logic = document.getElementById('logicType');
+                    if (logic) params.logic = logic.value;
+                }
+            }
+
+            var user = getCurrentUser();
+            if (user && user.Id) {
+                params._user_id = user.Id;
+            }
+
+            ReportAPI.storeIncome(params).then(function(data) {
+                incomeTable.allData = data || [];
+                incomeTable.filteredData = incomeTable.allData.slice();
+                incomeTable.totalPages = Math.ceil(incomeTable.filteredData.length / incomeTable.pageSize) || 1;
+                if (incomeTable.currentPage > incomeTable.totalPages) incomeTable.currentPage = incomeTable.totalPages || 1;
+                incomeTable.renderStats();
+                incomeTable.renderTable();
+                incomeTable.renderPagination();
+                incomeTable.updateSearchIndicator();
+                if (incomeTable.config.onLoad && typeof incomeTable.config.onLoad === 'function') {
+                    incomeTable.config.onLoad(incomeTable.allData);
+                }
+            }).catch(function(err) {
+                if (incomeTable.layer) incomeTable.layer.msg('加载失败: ' + err, {icon: 5});
+                incomeTable.allData = [];
+                incomeTable.filteredData = [];
+                incomeTable.renderStats();
+                incomeTable.renderTable();
+                incomeTable.renderPagination();
+            });
+        };
+    </script>
+</body>
+</html>
