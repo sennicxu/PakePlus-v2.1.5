@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>生成月度账单</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .generate-container {
+            max-width: 600px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 40px;
+        }
+        .generate-container .icon-large {
+            text-align: center;
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        .generate-container .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a3a5c;
+            margin-bottom: 8px;
+        }
+        .generate-container .subtitle {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .generate-container .form-group {
+            margin-bottom: 18px;
+        }
+        .generate-container .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #444;
+            margin-bottom: 5px;
+        }
+        .generate-container .form-group label .required {
+            color: #ff4d4f;
+            margin-right: 2px;
+        }
+        .generate-container .form-group select,
+        .generate-container .form-group input {
+            width: 100%;
+            padding: 9px 14px;
+            border: 1px solid #e0e4ea;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            background: #fafbfc;
+            transition: all 0.3s;
+            height: 42px;
+        }
+        .generate-container .form-group select:focus,
+        .generate-container .form-group input:focus {
+            border-color: #2d6a9f;
+            box-shadow: 0 0 0 3px rgba(45,106,159,0.08);
+            background: #fff;
+        }
+        .generate-container .form-group .help-text {
+            font-size: 12px;
+            color: #bbb;
+            margin-top: 3px;
+        }
+        .generate-container .btn-generate {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #2d6a9f, #1a3a5c);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+        }
+        .generate-container .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(45,106,159,0.3);
+        }
+        .generate-container .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .generate-container .result-box {
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 6px;
+            display: none;
+        }
+        .generate-container .result-box.success {
+            display: block;
+            background: #e6f7e6;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .generate-container .result-box.error {
+            display: block;
+            background: #ffeded;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        .generate-container .result-box .result-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+        .generate-container .result-box .result-text {
+            font-size: 14px;
+        }
+        .generate-container .result-box .result-detail {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+        @media (max-width: 480px) {
+            .generate-container {
+                padding: 24px;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="generate-container">
+            <div class="icon-large">📤</div>
+            <div class="title">生成月度账单</div>
+            <div class="subtitle">选择年月和门店，系统将自动生成/更新当月应收账单</div>
+
+            <div class="form-group">
+                <label><span class="required">*</span> 年份</label>
+                <select id="genYear"></select>
+            </div>
+
+            <div class="form-group">
+                <label><span class="required">*</span> 月份</label>
+                <select id="genMonth">
+                    <option value="1">1月</option>
+                    <option value="2">2月</option>
+                    <option value="3">3月</option>
+                    <option value="4">4月</option>
+                    <option value="5">5月</option>
+                    <option value="6">6月</option>
+                    <option value="7">7月</option>
+                    <option value="8">8月</option>
+                    <option value="9">9月</option>
+                    <option value="10">10月</option>
+                    <option value="11">11月</option>
+                    <option value="12">12月</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>门店（可选）</label>
+                <select id="genStore">
+                    <option value="">全部门店</option>
+                </select>
+                <div class="help-text">不选择则生成所有门店的账单</div>
+            </div>
+
+            <button class="btn-generate" id="btnGenerate" onclick="generateBills()">
+                <i class="fas fa-file-invoice"></i> 生成月度账单
+            </button>
+
+            <div class="result-box" id="resultBox">
+                <span class="result-icon" id="resultIcon">✅</span>
+                <span class="result-text" id="resultText">账单处理完成！</span>
+                <div class="result-detail" id="resultDetail"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/api.js"></script>
+    <script>
+        var layer = null;
+        var user = getCurrentUser();
+
+        layui.use(['layer'], function() {
+            layer = layui.layer;
+        });
+
+        // ============================================================
+        //  初始化
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            initYearOptions();
+            loadStoreOptions();
+            setDefaultMonth();
+        });
+
+        function initYearOptions() {
+            var select = document.getElementById('genYear');
+            var year = new Date().getFullYear();
+            for (var y = year - 2; y <= year + 1; y++) {
+                var opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y + '年';
+                if (y === year) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+
+        function setDefaultMonth() {
+            var month = new Date().getMonth() + 1;
+            document.getElementById('genMonth').value = month;
+        }
+
+        function loadStoreOptions() {
+            var params = {};
+            if (user && user.Id) {
+                params._user_id = user.Id;
+            }
+            StoreAPI.list(params).then(function(stores) {
+                var select = document.getElementById('genStore');
+                if (stores && stores.length > 0) {
+                    stores.forEach(function(s) {
+                        var opt = document.createElement('option');
+                        opt.value = s.Id;
+                        opt.textContent = s.StoreName;
+                        select.appendChild(opt);
+                    });
+                }
+            }).catch(function(err) {
+                console.error('加载门店失败:', err);
+            });
+        }
+
+        // ============================================================
+        //  生成账单
+        // ============================================================
+        function generateBills() {
+            var year = document.getElementById('genYear').value;
+            var month = document.getElementById('genMonth').value;
+            var storeId = document.getElementById('genStore').value;
+
+            if (!year) {
+                if (layer) layer.msg('请选择年份', {icon: 5});
+                return;
+            }
+            if (!month) {
+                if (layer) layer.msg('请选择月份', {icon: 5});
+                return;
+            }
+
+            var btn = document.getElementById('btnGenerate');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+
+            var resultBox = document.getElementById('resultBox');
+            resultBox.className = 'result-box';
+            resultBox.style.display = 'none';
+
+            var data = {
+                target_year: parseInt(year),
+                target_month: parseInt(month)
+            };
+            if (storeId) {
+                data.store_id = parseInt(storeId);
+            }
+
+            ReceivableAPI.generate(data).then(function(result) {
+                var generated = result.generated_count || 0;
+                var updated = result.updated_count || 0;
+                var total = result.total_count || 0;
+
+                var icon = document.getElementById('resultIcon');
+                var text = document.getElementById('resultText');
+                var detail = document.getElementById('resultDetail');
+
+                resultBox.className = 'result-box success';
+                resultBox.style.display = 'block';
+                icon.textContent = '✅';
+                
+                if (generated > 0 && updated > 0) {
+                    text.innerHTML = '账单处理完成！新增 <strong>' + generated + '</strong> 笔，更新 <strong>' + updated + '</strong> 笔';
+                    detail.textContent = '共 ' + total + ' 笔账单';
+                } else if (generated > 0) {
+                    text.innerHTML = '账单生成成功！新增 <strong>' + generated + '</strong> 笔账单';
+                    detail.textContent = '';
+                } else if (updated > 0) {
+                    text.innerHTML = '账单更新成功！更新 <strong>' + updated + '</strong> 笔账单';
+                    detail.textContent = '';
+                } else {
+                    text.innerHTML = '没有需要处理的合同';
+                    detail.textContent = '请检查该月份是否有生效合同';
+                }
+
+                if (layer) layer.msg(result.message || '处理成功', {icon: 1});
+
+            }).catch(function(err) {
+                resultBox.className = 'result-box error';
+                resultBox.style.display = 'block';
+                document.getElementById('resultIcon').textContent = '❌';
+                document.getElementById('resultText').textContent = '生成失败：' + err;
+                var detailEl = document.getElementById('resultDetail');
+                if (detailEl) {
+                    detailEl.textContent = '';
+                }
+
+                if (layer) layer.msg('生成失败: ' + err, {icon: 5});
+
+            }).finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-file-invoice"></i> 生成月度账单';
+            });
+        }
+    </script>
+</body>
+</html>
