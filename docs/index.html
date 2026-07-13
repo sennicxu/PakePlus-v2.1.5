@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门店租金应收款管理平台</title>
+    <!-- 使用 CDN 加载 LayUI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 50%, #4a90d9 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        .login-wrapper {
+            display: flex;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            margin: 20px;
+        }
+        .login-left {
+            flex: 1;
+            background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
+            padding: 50px 40px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 450px;
+        }
+        .login-left .logo-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .login-left h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .login-left p {
+            opacity: 0.8;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .login-left .features {
+            margin-top: 20px;
+            list-style: none;
+        }
+        .login-left .features li {
+            padding: 6px 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .login-left .features li:before {
+            content: "✓ ";
+            font-weight: 700;
+        }
+        .login-right {
+            flex: 1;
+            padding: 50px 40px;
+            min-width: 320px;
+        }
+        .login-right h2 {
+            font-size: 22px;
+            color: #1a3a5c;
+            margin-bottom: 8px;
+        }
+        .login-right .subtitle {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .login-right .layui-form-item {
+            margin-bottom: 20px;
+        }
+        .login-right .layui-input {
+            height: 44px;
+            border-radius: 6px;
+            border: 1px solid #d9d9d9;
+            padding-left: 44px;
+            font-size: 14px;
+        }
+        .login-right .layui-input:focus {
+            border-color: #2d6a9f;
+            box-shadow: 0 0 0 2px rgba(45,106,159,0.1);
+        }
+        .login-right .input-icon {
+            position: relative;
+        }
+        .login-right .input-icon .icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #bbb;
+            font-size: 18px;
+            z-index: 10;
+        }
+        .login-right .login-btn {
+            width: 100%;
+            height: 44px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #2d6a9f 0%, #1a3a5c 100%);
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .login-right .login-btn:hover {
+            opacity: 0.9;
+        }
+        .login-right .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .login-right .tip {
+            text-align: center;
+            color: #bbb;
+            font-size: 12px;
+            margin-top: 16px;
+        }
+        .login-right .tip strong {
+            color: #999;
+        }
+        .login-right .error-msg {
+            color: #ff4d4f;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 16px;
+            padding: 8px;
+            background: #fff2f0;
+            border-radius: 4px;
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .login-wrapper {
+                flex-direction: column;
+                max-width: 400px;
+            }
+            .login-left {
+                padding: 30px;
+                min-height: auto;
+            }
+            .login-right {
+                padding: 30px;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-left">
+            <div class="logo-icon">🏢</div>
+            <h1>应收款管理平台</h1>
+            <p>门店租金·水电费·应收账款 一站式管理</p>
+            <ul class="features">
+                <li>多门店统一管理</li>
+                <li>合同与租金跟踪</li>
+                <li>水电费按月录入</li>
+                <li>应收账款实时汇总</li>
+            </ul>
+        </div>
+        <div class="login-right">
+            <h2>欢迎登录</h2>
+            <div class="subtitle">请输入您的账号信息</div>
+            <div id="errorMsg" class="error-msg"></div>
+            <form id="loginForm">
+                <div class="layui-form-item input-icon">
+                    <span class="icon">👤</span>
+                    <input type="text" id="username" placeholder="请输入用户名" class="layui-input" autocomplete="off" value="admin">
+                </div>
+                <div class="layui-form-item input-icon">
+                    <span class="icon">🔒</span>
+                    <input type="password" id="password" placeholder="请输入密码" class="layui-input" autocomplete="off" value="admin123">
+                </div>
+                <div class="layui-form-item">
+                    <button type="button" id="loginBtn" class="login-btn">登 录</button>
+                </div>
+                <div class="tip">默认账号: <strong>admin</strong> / 密码: <strong>admin123</strong></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 使用 CDN 加载 LayUI -->
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        (function() {
+            var usernameInput = document.getElementById('username');
+            var passwordInput = document.getElementById('password');
+            var loginBtn = document.getElementById('loginBtn');
+            var errorMsg = document.getElementById('errorMsg');
+
+            // 登录函数
+            function doLogin() {
+                var username = usernameInput.value.trim();
+                var password = passwordInput.value.trim();
+
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+
+                if (!username) {
+                    errorMsg.textContent = '请输入用户名';
+                    errorMsg.style.display = 'block';
+                    usernameInput.focus();
+                    return;
+                }
+                if (!password) {
+                    errorMsg.textContent = '请输入密码';
+                    errorMsg.style.display = 'block';
+                    passwordInput.focus();
+                    return;
+                }
+
+                loginBtn.disabled = true;
+                loginBtn.textContent = '登录中...';
+
+                // 调用登录接口（密码明文传输）
+                UserAPI.login(username, password).then(function(data) {
+                    if (data) {
+                        localStorage.setItem('currentUser', JSON.stringify(data));
+                        localStorage.setItem('token', data.token || '');
+                        window.location.href = 'main.html';
+                    } else {
+                        errorMsg.textContent = '登录失败，请重试';
+                        errorMsg.style.display = 'block';
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = '登 录';
+                    }
+                }).catch(function(err) {
+                    errorMsg.textContent = err || '登录失败，请检查用户名和密码';
+                    errorMsg.style.display = 'block';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '登 录';
+                });
+            }
+
+            loginBtn.addEventListener('click', doLogin);
+
+            document.getElementById('loginForm').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    doLogin();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
