@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门店租金应收款管理平台</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ===== 全局重置 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ===== 顶部导航 ===== */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 40%, #2d6a9f 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        }
+
+        .top-header .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .top-header .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .top-header .logo-text {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .top-header .logo-text span {
+            color: #5fb8ff;
+        }
+
+        .top-header .logo-sub {
+            color: rgba(255,255,255,0.45);
+            font-size: 12px;
+            font-weight: 400;
+            margin-left: 8px;
+            letter-spacing: 0;
+        }
+
+        .top-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .top-header .header-right .date-time {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .top-header .header-right .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 16px 6px 12px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .top-header .header-right .user-info:hover {
+            background: rgba(255,255,255,0.14);
+        }
+
+        .top-header .header-right .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #5fb8ff, #2d6a9f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .top-header .header-right .user-name {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .top-header .header-right .user-role {
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+            padding: 2px 10px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+        }
+
+        /* ===== 侧边栏 ===== */
+        .sidebar {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            bottom: 0;
+            width: 240px;
+            background: #0f1a2e;
+            z-index: 999;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+        }
+
+        .sidebar .menu-section {
+            padding: 16px 16px 8px 16px;
+            color: rgba(255,255,255,0.25);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .sidebar .menu-group {
+            margin-bottom: 2px;
+        }
+
+        .sidebar .menu-group .menu-label {
+            display: block;
+            padding: 11px 20px;
+            margin: 2px 12px;
+            border-radius: 8px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .sidebar .menu-group .menu-label:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.06);
+        }
+
+        .sidebar .menu-group .menu-label.active {
+            color: #fff;
+            background: linear-gradient(135deg, rgba(45,106,159,0.4), rgba(45,106,159,0.15));
+            border-left: 3px solid #2d6a9f;
+        }
+
+        .sidebar .menu-group .menu-label .icon {
+            width: 24px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        .sidebar .menu-group .menu-label .arrow {
+            float: right;
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+
+        .sidebar .menu-group .menu-label .arrow.open {
+            transform: rotate(90deg);
+        }
+
+        .sidebar .menu-group .sub-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+
+        .sidebar .menu-group .sub-menu.open {
+            max-height: 500px;
+        }
+
+        .sidebar .menu-group .sub-menu .menu-item {
+            display: block;
+            padding: 9px 20px 9px 52px;
+            margin: 1px 12px;
+            border-radius: 6px;
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .sidebar .menu-group .sub-menu .menu-item:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .sidebar .menu-group .sub-menu .menu-item.active {
+            color: #fff;
+            background: rgba(45,106,159,0.25);
+        }
+
+        .sidebar .menu-group .sub-menu .menu-item .icon {
+            width: 20px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        /* ===== 主内容 ===== */
+        .main-content {
+            margin-left: 240px;
+            margin-top: 64px;
+            height: calc(100vh - 64px);
+            background: #f0f2f5;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .main-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #f0f2f5;
+        }
+
+        /* ===== 下拉菜单 ===== */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 52px;
+            right: 0;
+            min-width: 160px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            z-index: 1001;
+            overflow: hidden;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .dropdown-menu .dropdown-item:hover {
+            background: #f0f4f9;
+        }
+
+        .dropdown-menu .dropdown-item.danger {
+            color: #ff4d4f;
+        }
+
+        .dropdown-menu .dropdown-item.danger:hover {
+            background: #fff2f0;
+        }
+
+        .dropdown-menu .dropdown-divider {
+            height: 1px;
+            background: #f0f2f5;
+            margin: 4px 12px;
+        }
+
+        /* ===== 用户下拉容器 ===== */
+        .user-dropdown-wrap {
+            position: relative;
+        }
+
+        /* ===== 修改密码弹窗 ===== */
+        .pwd-modal {
+            padding: 10px 0;
+        }
+        .pwd-modal .form-group {
+            margin-bottom: 16px;
+        }
+        .pwd-modal .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #444;
+            margin-bottom: 4px;
+        }
+        .pwd-modal .form-group label .required {
+            color: #ff4d4f;
+            margin-right: 2px;
+        }
+        .pwd-modal .form-group input {
+            width: 100%;
+            padding: 7px 12px;
+            border: 1px solid #e0e4ea;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.3s;
+            outline: none;
+            background: #fafbfc;
+            color: #333;
+        }
+        .pwd-modal .form-group input:focus {
+            border-color: #2d6a9f;
+            box-shadow: 0 0 0 3px rgba(45,106,159,0.08);
+            background: #fff;
+        }
+        .pwd-modal .form-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 14px;
+            border-top: 1px solid #f0f2f5;
+            margin-top: 4px;
+        }
+        .pwd-modal .form-footer .btn {
+            padding: 7px 24px;
+            border-radius: 6px;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .pwd-modal .form-footer .btn-primary {
+            background: linear-gradient(135deg, #2d6a9f, #1a3a5c);
+            color: #fff;
+        }
+        .pwd-modal .form-footer .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(45,106,159,0.3);
+        }
+        .pwd-modal .form-footer .btn-default {
+            background: #f0f2f5;
+            color: #666;
+        }
+        .pwd-modal .form-footer .btn-default:hover {
+            background: #e0e4ea;
+        }
+        .pwd-modal .pwd-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+        }
+        .pwd-modal .pwd-hint i {
+            margin-right: 4px;
+        }
+
+        /* ===== 弹窗样式修复 ===== */
+        .layui-layer-page .layui-layer-content {
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+        .layui-layer-content .pwd-modal {
+            padding: 20px 24px 10px 24px;
+        }
+        .layui-layer-title {
+            background: linear-gradient(135deg, #1a3a5c, #2d6a9f) !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+            padding: 0 20px !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .layui-layer-title i {
+            margin-right: 8px;
+        }
+        .layui-layer-close {
+            color: rgba(255,255,255,0.6) !important;
+        }
+        .layui-layer-close:hover {
+            color: #fff !important;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            .sidebar .menu-group .menu-label .text,
+            .sidebar .menu-group .menu-label .arrow,
+            .sidebar .menu-section {
+                display: none;
+            }
+            .sidebar .menu-group .sub-menu .menu-item {
+                padding-left: 16px;
+            }
+            .sidebar .menu-group .sub-menu .menu-item .text {
+                display: none;
+            }
+            .main-content {
+                margin-left: 60px;
+            }
+            .top-header .logo-sub,
+            .top-header .date-time {
+                display: none;
+            }
+        }
+
+        /* ===== 过渡动画 ===== */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-menu.show {
+            animation: slideIn 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 顶部导航 ===== -->
+    <header class="top-header">
+        <div class="logo-area">
+            <div class="logo-icon">🏢</div>
+            <div>
+                <span class="logo-text">应收款<span>管理</span></span>
+                <span class="logo-sub">| 门店租金管理平台</span>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="date-time" id="headerTime">
+                <i class="far fa-calendar-alt" style="margin-right:6px;"></i>
+                <span id="currentDate">2026-07-11</span>
+                <span style="margin:0 6px;opacity:0.3;">|</span>
+                <span id="currentTime">10:30:00</span>
+            </div>
+
+            <div class="user-dropdown-wrap">
+                <div class="user-info" onclick="toggleUserMenu()">
+                    <div class="user-avatar" id="userAvatar">管</div>
+                    <div>
+                        <div class="user-name" id="userName">管理员</div>
+                        <div class="user-role" id="userRole">系统管理员</div>
+                    </div>
+                    <i class="fas fa-chevron-down" style="color:rgba(255,255,255,0.3);font-size:12px;margin-left:4px;"></i>
+                </div>
+
+                <div class="dropdown-menu" id="userDropdown">
+                    <!-- 修改密码 -->
+                    <button class="dropdown-item" onclick="showChangePwd()">
+                        <i class="fas fa-key" style="width:18px;color:#faad14;"></i>
+                        修改密码
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <!-- 退出登录 -->
+                    <button class="dropdown-item danger" onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt" style="width:18px;"></i>
+                        退出登录
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== 侧边栏 ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="menu-section">导航菜单</div>
+
+        <!-- ===== 1. 首页仪表盘 ===== -->
+        <div class="menu-group">
+            <a class="menu-label active" data-target="pages/dashboard.html" onclick="navigate(this)">
+                <span class="icon">📊</span>
+                <span class="text">首页仪表盘</span>
+            </a>
+        </div>
+
+        <!-- ===== 2. 基础数据 ===== -->
+        <div class="menu-group">
+            <div class="menu-label" onclick="toggleSubMenu(this)">
+                <span class="icon">⚙️</span>
+                <span class="text">基础数据</span>
+                <span class="arrow open">▶</span>
+            </div>
+            <div class="sub-menu open" id="subBase">
+                <a class="menu-item" data-target="pages/store.html" onclick="navigate(this)">
+                    <span class="icon">🏢</span>
+                    <span class="text">门店管理</span>
+                </a>
+                <a class="menu-item" data-target="pages/user.html" onclick="navigate(this)">
+                    <span class="icon">👤</span>
+                    <span class="text">用户管理</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- ===== 3. 业务管理 ===== -->
+        <div class="menu-group">
+            <div class="menu-label" onclick="toggleSubMenu(this)">
+                <span class="icon">📋</span>
+                <span class="text">业务管理</span>
+                <span class="arrow">▶</span>
+            </div>
+            <div class="sub-menu" id="subBusiness">
+                <a class="menu-item" data-target="pages/contract.html" onclick="navigate(this)">
+                    <span class="icon">📄</span>
+                    <span class="text">合同管理</span>
+                </a>
+                <a class="menu-item" data-target="pages/utility.html" onclick="navigate(this)">
+                    <span class="icon">💧</span>
+                    <span class="text">水电费录入</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- ===== 4. 应收账款 ===== -->
+        <div class="menu-group">
+            <div class="menu-label" onclick="toggleSubMenu(this)">
+                <span class="icon">💰</span>
+                <span class="text">应收账款</span>
+                <span class="arrow">▶</span>
+            </div>
+            <div class="sub-menu" id="subReceivable">
+                <a class="menu-item" data-target="pages/receivable.html" onclick="navigate(this)">
+                    <span class="icon">📋</span>
+                    <span class="text">账单列表</span>
+                </a>
+                <a class="menu-item" data-target="pages/receivable_generate.html" onclick="navigate(this)">
+                    <span class="icon">📤</span>
+                    <span class="text">生成月度账单</span>
+                </a>
+                <a class="menu-item" data-target="pages/arrears.html" onclick="navigate(this)">
+                    <span class="icon">⚠️</span>
+                    <span class="text">欠款明细</span>
+                </a>
+                <a class="menu-item" data-target="pages/payment.html" onclick="navigate(this)">
+                    <span class="icon">💳</span>
+                    <span class="text">收款管理</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- ===== 5. 报表统计 ===== -->
+        <div class="menu-group">
+            <div class="menu-label" onclick="toggleSubMenu(this)">
+                <span class="icon">📈</span>
+                <span class="text">报表统计</span>
+                <span class="arrow">▶</span>
+            </div>
+            <div class="sub-menu" id="subReport">
+                <a class="menu-item" data-target="pages/report_monthly.html" onclick="navigate(this)">
+                    <span class="icon">📊</span>
+                    <span class="text">月度汇总</span>
+                </a>
+                <a class="menu-item" data-target="pages/report_arrears.html" onclick="navigate(this)">
+                    <span class="icon">📉</span>
+                    <span class="text">欠款汇总</span>
+                </a>
+                <a class="menu-item" data-target="pages/report_income.html" onclick="navigate(this)">
+                    <span class="icon">📈</span>
+                    <span class="text">门店收入</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ===== 主内容 ===== -->
+    <main class="main-content">
+        <iframe id="contentFrame" name="content" src="pages/dashboard.html"></iframe>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // ============================================================
+        //  1. 用户信息
+        // ============================================================
+        var user = getCurrentUser();
+        if (!user) {
+            window.location.href = 'index.html';
+        }
+
+        var userNameEl = document.getElementById('userName');
+        var userRoleEl = document.getElementById('userRole');
+        var userAvatar = document.getElementById('userAvatar');
+
+        userNameEl.textContent = user.FullName || user.UserName || '管理员';
+        userRoleEl.textContent = user.UserRole === 2 ? '系统管理员' : '普通用户';
+        userAvatar.textContent = (user.FullName || user.UserName || '管').charAt(0);
+
+        // ============================================================
+        //  2. 时间显示
+        // ============================================================
+        function updateClock() {
+            var now = new Date();
+            var dateStr = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0');
+            var timeStr = String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('currentDate').textContent = dateStr;
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ============================================================
+        //  3. 用户下拉菜单
+        // ============================================================
+        function toggleUserMenu() {
+            var dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            var wrap = document.querySelector('.user-dropdown-wrap');
+            if (wrap && !wrap.contains(e.target)) {
+                document.getElementById('userDropdown').classList.remove('show');
+            }
+        });
+
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ============================================================
+        //  4. 修改密码
+        // ============================================================
+        var layer = null;
+        var pwdModalIndex = null;
+
+        layui.use(['layer'], function() {
+            layer = layui.layer;
+        });
+
+        function showChangePwd() {
+            if (!layer) {
+                alert('LayUI 未加载，请刷新页面重试');
+                return;
+            }
+
+            var html = `
+                <div class="pwd-modal">
+                    <div class="form-group">
+                        <label><span class="required">*</span> 当前密码</label>
+                        <input type="password" id="oldPwd" placeholder="请输入当前密码">
+                    </div>
+                    <div class="form-group">
+                        <label><span class="required">*</span> 新密码</label>
+                        <input type="password" id="newPwd" placeholder="请输入新密码">
+                        <div class="pwd-hint"><i class="fas fa-info-circle"></i> 密码长度不少于6位</div>
+                    </div>
+                    <div class="form-group">
+                        <label><span class="required">*</span> 确认新密码</label>
+                        <input type="password" id="confirmPwd" placeholder="请再次输入新密码">
+                    </div>
+                    <div class="form-footer">
+                        <button class="btn btn-default" onclick="closePwdModal()">取消</button>
+                        <button class="btn btn-primary" onclick="submitChangePwd()"><i class="fas fa-save"></i> 确认修改</button>
+                    </div>
+                </div>
+            `;
+
+            pwdModalIndex = layer.open({
+                type: 1,
+                title: '<i class="fas fa-key" style="color:#faad14;"></i> 修改密码',
+                area: ['420px', 'auto'],
+                content: html,
+                shadeClose: false,
+                resize: false,
+                maxHeight: '90vh'
+            });
+        }
+
+        function closePwdModal() {
+            if (pwdModalIndex !== null && pwdModalIndex !== undefined) {
+                layer.close(pwdModalIndex);
+                pwdModalIndex = null;
+            }
+        }
+
+        function submitChangePwd() {
+            var oldPwd = document.getElementById('oldPwd').value.trim();
+            var newPwd = document.getElementById('newPwd').value.trim();
+            var confirmPwd = document.getElementById('confirmPwd').value.trim();
+
+            if (!oldPwd) {
+                layer.msg('请输入当前密码', {icon: 5});
+                return;
+            }
+            if (!newPwd) {
+                layer.msg('请输入新密码', {icon: 5});
+                return;
+            }
+            if (newPwd.length < 6) {
+                layer.msg('新密码长度不能少于6位', {icon: 5});
+                return;
+            }
+            if (newPwd !== confirmPwd) {
+                layer.msg('两次输入的密码不一致', {icon: 5});
+                return;
+            }
+
+            var currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.Id) {
+                layer.msg('用户信息丢失，请重新登录', {icon: 5});
+                return;
+            }
+
+            layer.load(1);
+
+            UserAPI.update({
+                id: currentUser.Id,
+                old_password: oldPwd,
+                password: newPwd
+            }).then(function() {
+                layer.closeAll('loading');
+                layer.msg('密码修改成功！请重新登录', {icon: 1, time: 2000}, function() {
+                    closePwdModal();
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('token');
+                    window.location.href = 'index.html';
+                });
+            }).catch(function(err) {
+                layer.closeAll('loading');
+                if (err && err.includes('当前密码错误')) {
+                    layer.msg('当前密码错误，请重新输入', {icon: 5});
+                } else {
+                    layer.msg('修改密码失败: ' + err, {icon: 5});
+                }
+            });
+        }
+
+        // ============================================================
+        //  5. 菜单导航
+        // ============================================================
+        function navigate(el) {
+            document.querySelectorAll('.menu-label, .menu-item').forEach(function(item) {
+                item.classList.remove('active');
+            });
+            el.classList.add('active');
+
+            var target = el.getAttribute('data-target');
+            if (target) {
+                document.getElementById('contentFrame').src = target;
+            }
+            document.getElementById('userDropdown').classList.remove('show');
+        }
+
+        // ============================================================
+        //  6. 子菜单展开/收起
+        // ============================================================
+        function toggleSubMenu(el) {
+            var parent = el.closest('.menu-group');
+            if (!parent) return;
+            var sub = parent.querySelector('.sub-menu');
+            var arrow = el.querySelector('.arrow');
+            if (sub) {
+                sub.classList.toggle('open');
+                if (arrow) {
+                    arrow.classList.toggle('open');
+                }
+            }
+        }
+
+        // ============================================================
+        //  7. 权限控制：非管理员隐藏基础数据
+        // ============================================================
+        if (!isAdmin()) {
+            var menuGroups = document.querySelectorAll('.menu-group');
+            if (menuGroups.length > 1) {
+                menuGroups[1].style.display = 'none';
+            }
+        }
+
+        // ============================================================
+        //  8. 键盘快捷键
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'q') {
+                e.preventDefault();
+                handleLogout();
+            }
+        });
+
+        // ============================================================
+        //  9. 错误捕获
+        // ============================================================
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('页面错误:', msg, url, line, col, error);
+        };
+    </script>
+</body>
+</html>
