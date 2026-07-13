@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>月度汇总</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <div id="tableWrap"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/table.js"></script>
+    <script>
+        var monthlyTable = new DataTable({
+            container: '#tableWrap',
+            title: '月度汇总',
+            subtitle: '各门店月度应收汇总',
+            icon: '📊',
+            badge: '共 0 条',
+
+            api: ReportAPI,
+
+            importable: false,
+            exportable: true,
+
+            searchFields: [
+                { value: 'store_name', label: '门店名称' },
+                { value: 'counter_name', label: '专柜名称' }
+            ],
+
+            advancedFields: [
+                { value: 'store_name', label: '门店名称' },
+                { value: 'counter_name', label: '专柜名称' },
+                { value: 'bill_year', label: '年份' },
+                { value: 'bill_month', label: '月份' }
+            ],
+
+            stats: [
+                { id: 'statTotal', label: '记录数', icon: '📋', calc: function(row) { return 1; } },
+                { id: 'statReceivable', label: '应收总额', icon: '💰', color: 'blue', calc: function(row) { return parseFloat(row.TotalReceivable) || 0; } },
+                { id: 'statPaid', label: '已收金额', icon: '✅', color: 'green', calc: function(row) { return parseFloat(row.TotalPaid) || 0; } },
+                { id: 'statBalance', label: '未收余额', icon: '⏳', color: 'orange', calc: function(row) { return parseFloat(row.TotalBalance) || 0; } }
+            ],
+
+            columns: [
+                { field: 'StoreName', label: '门店名称', width: '140px' },
+                { field: 'CounterCode', label: '专柜编号', width: '100px' },
+                { field: 'CounterName', label: '专柜名称', width: '140px' },
+                { field: 'TenantName', label: '承租人', width: '80px' },
+                { field: 'BillYear', label: '年份', width: '70px' },
+                { 
+                    field: 'BillMonth', 
+                    label: '月份', 
+                    width: '60px',
+                    render: function(value) {
+                        var monthNames = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                        return monthNames[value] || '-';
+                    }
+                },
+                { 
+                    field: 'TotalRent', 
+                    label: '租金', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '¥' + v.toFixed(2);
+                    }
+                },
+                { 
+                    field: 'TotalWater', 
+                    label: '水费', 
+                    width: '80px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '¥' + v.toFixed(2);
+                    }
+                },
+                { 
+                    field: 'TotalElectric', 
+                    label: '电费', 
+                    width: '80px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '¥' + v.toFixed(2);
+                    }
+                },
+                { 
+                    field: 'TotalReceivable', 
+                    label: '应收合计', 
+                    width: '100px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money" style="font-weight:700;">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'TotalPaid', 
+                    label: '已收金额', 
+                    width: '100px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money money-positive">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'TotalBalance', 
+                    label: '未收余额', 
+                    width: '100px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        var cls = v > 0 ? 'money-negative' : 'money-zero';
+                        return '<span class="money ' + cls + '">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'CollectionRate', 
+                    label: '收款率', 
+                    width: '80px',
+                    render: function(value, row) {
+                        var total = parseFloat(row.TotalReceivable) || 0;
+                        var paid = parseFloat(row.TotalPaid) || 0;
+                        var rate = total > 0 ? (paid / total * 100) : 0;
+                        var color = rate >= 90 ? '#52c41a' : (rate >= 50 ? '#faad14' : '#ff4d4f');
+                        return '<span style="color:' + color + ';font-weight:600;">' + rate.toFixed(1) + '%</span>';
+                    }
+                }
+            ],
+
+            rowActions: [],
+            formFields: []
+        });
+
+        // ============================================================
+        //  重写 loadData（使用 ReportAPI.monthlySummary）
+        // ============================================================
+        var originalLoadData = monthlyTable.loadData;
+        monthlyTable.loadData = function() {
+            var params = {};
+            var tab = document.querySelector('.search-tabs .tab.active');
+            var tabName = tab ? tab.dataset.tab : 'quick';
+
+            if (tabName === 'quick') {
+                var field = document.getElementById('quickField');
+                var value = document.getElementById('quickValue');
+                if (field && value && value.value.trim()) {
+                    params[field.value] = value.value.trim();
+                }
+            } else {
+                var conditions = monthlyTable.buildConditions();
+                if (conditions.length > 0) {
+                    params.conditions = conditions;
+                    var logic = document.getElementById('logicType');
+                    if (logic) params.logic = logic.value;
+                }
+            }
+
+            // 添加用户ID用于权限控制
+            var user = getCurrentUser();
+            if (user && user.Id) {
+                params._user_id = user.Id;
+            }
+
+            ReportAPI.monthlySummary(params).then(function(data) {
+                monthlyTable.allData = data || [];
+                monthlyTable.filteredData = monthlyTable.allData.slice();
+                monthlyTable.totalPages = Math.ceil(monthlyTable.filteredData.length / monthlyTable.pageSize) || 1;
+                if (monthlyTable.currentPage > monthlyTable.totalPages) monthlyTable.currentPage = monthlyTable.totalPages || 1;
+                monthlyTable.renderStats();
+                monthlyTable.renderTable();
+                monthlyTable.renderPagination();
+                monthlyTable.updateSearchIndicator();
+                if (monthlyTable.config.onLoad && typeof monthlyTable.config.onLoad === 'function') {
+                    monthlyTable.config.onLoad(monthlyTable.allData);
+                }
+            }).catch(function(err) {
+                if (monthlyTable.layer) monthlyTable.layer.msg('加载失败: ' + err, {icon: 5});
+                monthlyTable.allData = [];
+                monthlyTable.filteredData = [];
+                monthlyTable.renderStats();
+                monthlyTable.renderTable();
+                monthlyTable.renderPagination();
+            });
+        };
+    </script>
+</body>
+</html>
