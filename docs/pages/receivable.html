@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>应收账款</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .charge-status-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .charge-status-tag .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .charge-status-tag.pending {
+            background: #fff7e6;
+            color: #faad14;
+        }
+        .charge-status-tag.pending .dot {
+            background: #faad14;
+        }
+        .charge-status-tag.partial {
+            background: #e8f0fe;
+            color: #2d6a9f;
+        }
+        .charge-status-tag.partial .dot {
+            background: #2d6a9f;
+        }
+        .charge-status-tag.paid {
+            background: #e6f7e6;
+            color: #52c41a;
+        }
+        .charge-status-tag.paid .dot {
+            background: #52c41a;
+        }
+        .charge-status-tag.overdue {
+            background: #ffeded;
+            color: #ff4d4f;
+        }
+        .charge-status-tag.overdue .dot {
+            background: #ff4d4f;
+        }
+
+        .money-positive { color: #52c41a; }
+        .money-negative { color: #ff4d4f; }
+        .money-zero { color: #999; }
+    </style>
+</head>
+<body>
+    <div id="tableWrap"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/table.js"></script>
+    <script>
+        var receivableTable = new DataTable({
+            container: '#tableWrap',
+            title: '应收账款',
+            subtitle: '管理所有应收账单',
+            icon: '💰',
+            badge: '共 0 笔',
+
+            api: ReceivableAPI,
+
+            importable: false,
+            exportable: true,
+
+            searchFields: [
+                { value: 'counter_name', label: '专柜名称' },
+                { value: 'contract_no', label: '合同编号' }
+            ],
+
+            advancedFields: [
+                { value: 'counter_name', label: '专柜名称' },
+                { value: 'contract_no', label: '合同编号' },
+                { value: 'bill_year', label: '年份' },
+                { value: 'bill_month', label: '月份' },
+                { value: 'charge_status', label: '收费状态' }
+            ],
+
+            stats: [
+                { id: 'statTotal', label: '应收总额', icon: '💰', calc: function(row) { return parseFloat(row.Subtotal) || 0; } },
+                { id: 'statPaid', label: '已收金额', icon: '✅', color: 'green', calc: function(row) { return parseFloat(row.PaidAmount) || 0; } },
+                { id: 'statBalance', label: '未收余额', icon: '⏳', color: 'orange', calc: function(row) { return parseFloat(row.BalanceAmount) || 0; } },
+                { id: 'statOverdue', label: '逾期金额', icon: '⚠️', color: 'red', calc: function(row) { return row.ChargeStatus === 4 ? (parseFloat(row.BalanceAmount) || 0) : 0; } }
+            ],
+
+            columns: [
+                { field: 'BillYear', label: '年份', width: '70px' },
+                { 
+                    field: 'BillMonth', 
+                    label: '月份', 
+                    width: '60px',
+                    render: function(value) {
+                        var monthNames = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                        return monthNames[value] || '-';
+                    }
+                },
+                { field: 'ContractNo', label: '合同编号', width: '120px' },
+                { field: 'StoreName', label: '所属门店', width: '110px' },
+                { field: 'CounterCode', label: '专柜编号', width: '100px' },
+                { field: 'CounterName', label: '专柜名称', width: '120px' },
+                { field: 'TenantName', label: '承租人', width: '80px' },
+                { 
+                    field: 'RentAmount', 
+                    label: '租金', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'WaterAmount', 
+                    label: '水费', 
+                    width: '80px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'ElectricAmount', 
+                    label: '电费', 
+                    width: '80px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'Subtotal', 
+                    label: '合计', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money" style="font-weight:700;">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'PaidAmount', 
+                    label: '已收', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        return '<span class="money money-positive">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'BalanceAmount', 
+                    label: '未收', 
+                    width: '90px',
+                    render: function(value) {
+                        var v = parseFloat(value) || 0;
+                        var cls = v > 0 ? 'money-negative' : 'money-zero';
+                        return '<span class="money ' + cls + '">¥' + v.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'ChargeStatus', 
+                    label: '状态', 
+                    width: '90px',
+                    render: function(value) {
+                        var map = {
+                            1: { text: '待收', cls: 'pending' },
+                            2: { text: '部分收款', cls: 'partial' },
+                            3: { text: '已收清', cls: 'paid' },
+                            4: { text: '逾期', cls: 'overdue' }
+                        };
+                        var info = map[value] || { text: '未知', cls: 'pending' };
+                        return '<span class="charge-status-tag ' + info.cls + '"><span class="dot"></span>' + info.text + '</span>';
+                    }
+                }
+            ],
+
+            rowActions: [
+                { 
+                    label: '收款', 
+                    class: 'btn-success', 
+                    icon: 'fas fa-money-bill-wave', 
+                    handler: 'showPayment',
+                    disabled: function(row) {
+                        return row.ChargeStatus === 3 || parseFloat(row.BalanceAmount) <= 0;
+                    }
+                }
+            ],
+
+            formFields: []
+        });
+
+        // ============================================================
+        //  收款功能
+        // ============================================================
+        var paymentModalIndex = null;
+
+        function showPayment(id) {
+            if (!receivableTable.layer) return;
+            receivableTable.layer.load(1);
+            ReceivableAPI.get(id).then(function(data) {
+                receivableTable.layer.closeAll('loading');
+                if (!data) {
+                    receivableTable.layer.msg('账单不存在', {icon: 5});
+                    return;
+                }
+                var html = buildPaymentForm(data);
+                openPaymentModal(html, data);
+            }).catch(function(err) {
+                receivableTable.layer.closeAll('loading');
+                receivableTable.layer.msg('获取账单失败: ' + err, {icon: 5});
+            });
+        }
+
+        function buildPaymentForm(data) {
+            var today = new Date().toISOString().split('T')[0];
+            var balance = parseFloat(data.BalanceAmount) || 0;
+            var subtotal = parseFloat(data.Subtotal) || 0;
+
+            return `
+                <div class="modal-form">
+                    <input type="hidden" id="paymentReceivableId" value="${data.Id}">
+                    
+                    <div style="background:#f7f9fc;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;">
+                            <span><strong>合同：</strong>${data.ContractNo || '-'}</span>
+                            <span><strong>专柜：</strong>${data.CounterName || '-'}</span>
+                            <span><strong>承租人：</strong>${data.TenantName || '-'}</span>
+                            <span><strong>账单：</strong>${data.BillYear || ''}年${data.BillMonth || ''}月</span>
+                            <span><strong>应收合计：</strong><span style="font-weight:700;color:#1a3a5c;">¥${subtotal.toFixed(2)}</span></span>
+                            <span><strong>未收余额：</strong><span style="font-weight:700;color:#ff4d4f;">¥${balance.toFixed(2)}</span></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><span class="required">*</span> 收款金额</label>
+                        <input type="number" id="fPaymentAmount" step="0.01" placeholder="请输入收款金额" oninput="checkPaymentAmount(${balance})">
+                        <div class="help-text">未收余额：¥${balance.toFixed(2)}</div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label><span class="required">*</span> 收款日期</label>
+                            <input type="date" id="fPaymentDate" value="${today}">
+                        </div>
+                        <div class="form-group">
+                            <label><span class="required">*</span> 收款方式</label>
+                            <select id="fPaymentMethod">
+                                <option value="1">现金</option>
+                                <option value="2">银行转账</option>
+                                <option value="3">支票</option>
+                                <option value="4">微信</option>
+                                <option value="5">支付宝</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label>收据号</label>
+                            <input type="text" id="fReceiptNo" placeholder="请输入收据号">
+                        </div>
+                        <div class="form-group">
+                            <label>备注</label>
+                            <input type="text" id="fPaymentRemarks" placeholder="请输入备注">
+                        </div>
+                    </div>
+
+                    <div class="form-footer">
+                        <button class="btn btn-default" onclick="closePaymentModal()">取消</button>
+                        <button class="btn btn-primary" onclick="submitPayment()"><i class="fas fa-save"></i> 确认收款</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkPaymentAmount(balance) {
+            var el = document.getElementById('fPaymentAmount');
+            if (!el) return;
+            var val = parseFloat(el.value) || 0;
+            if (val > balance) {
+                el.value = balance.toFixed(2);
+            }
+        }
+
+        function openPaymentModal(html, data) {
+            if (!receivableTable.layer) return;
+            paymentModalIndex = receivableTable.layer.open({
+                type: 1,
+                title: '<i class="fas fa-money-bill-wave" style="color:#52c41a;"></i> 收款 - ' + data.ContractNo,
+                area: ['520px', 'auto'],
+                content: html,
+                shadeClose: false,
+                resize: false,
+                maxHeight: '90vh'
+            });
+        }
+
+        function closePaymentModal() {
+            if (paymentModalIndex !== null && paymentModalIndex !== undefined) {
+                receivableTable.layer.close(paymentModalIndex);
+                paymentModalIndex = null;
+            }
+        }
+
+        function submitPayment() {
+            var receivableId = document.getElementById('paymentReceivableId').value;
+            var paymentAmount = document.getElementById('fPaymentAmount').value;
+            var paymentDate = document.getElementById('fPaymentDate').value;
+            var paymentMethod = document.getElementById('fPaymentMethod').value;
+            var receiptNo = document.getElementById('fReceiptNo').value.trim();
+            var remarks = document.getElementById('fPaymentRemarks').value.trim();
+
+            if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+                receivableTable.layer.msg('请输入有效的收款金额', {icon: 5});
+                return;
+            }
+            if (!paymentDate) {
+                receivableTable.layer.msg('请选择收款日期', {icon: 5});
+                return;
+            }
+
+            var user = getCurrentUser();
+            var data = {
+                receivable_detail_id: parseInt(receivableId),
+                payment_date: paymentDate,
+                payment_method: parseInt(paymentMethod),
+                payment_amount: parseFloat(paymentAmount),
+                apply_amount: parseFloat(paymentAmount),
+                receipt_no: receiptNo,
+                received_by: user ? user.Id : null,
+                creater: user ? user.Id : null,
+                remarks: remarks
+            };
+
+            receivableTable.layer.load(1);
+
+            PaymentAPI.add(data).then(function(result) {
+                receivableTable.layer.closeAll('loading');
+                receivableTable.layer.msg('收款成功！收款单号：' + (result.payment_no || ''), {icon: 1});
+                closePaymentModal();
+                receivableTable.loadData();
+            }).catch(function(err) {
+                receivableTable.layer.closeAll('loading');
+                receivableTable.layer.msg('收款失败: ' + err, {icon: 5});
+            });
+        }
+
+        receivableTable.showPayment = showPayment;
+    </script>
+</body>
+</html>
