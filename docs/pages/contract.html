@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>合同管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .tag-expired { background: #f0f0f0; color: #999; }
+        .tag-expired .dot { background: #999; }
+        .tag-active { background: #e6f7e6; color: #52c41a; }
+        .tag-active .dot { background: #52c41a; }
+        .tag-terminated { background: #ffeded; color: #ff4d4f; }
+        .tag-terminated .dot { background: #ff4d4f; }
+        .contract-no { color: #2d6a9f; font-weight: 600; }
+        .money { font-family: "Courier New", monospace; font-weight: 600; color: #1a3a5c; }
+
+        .btn-sm.btn-adjust {
+            background: #fff7e6;
+            color: #faad14;
+        }
+        .btn-sm.btn-adjust:hover {
+            background: #ffedd6;
+        }
+        .btn-sm.btn-log {
+            background: #f0f0f0;
+            color: #666;
+        }
+        .btn-sm.btn-log:hover {
+            background: #e0e0e0;
+        }
+
+        .log-modal {
+            padding: 10px 0;
+        }
+        .log-modal .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a3a5c;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+        .log-modal .section-title i {
+            margin-right: 8px;
+            color: #2d6a9f;
+        }
+
+        .log-list {
+            max-height: 350px;
+            overflow-y: auto;
+            margin-bottom: 4px;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .log-table thead th {
+            background: #f7f9fc;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid #e8ecf1;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .log-table tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f2f5;
+            vertical-align: middle;
+            color: #444;
+        }
+        .log-table tbody tr:hover {
+            background: #f7f9fc;
+        }
+        .log-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .log-table .old-rent {
+            color: #ff4d4f;
+            text-decoration: line-through;
+        }
+        .log-table .new-rent {
+            color: #52c41a;
+            font-weight: 600;
+        }
+        .log-table .type-tag {
+            display: inline-block;
+            padding: 1px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .log-table .type-tag.down {
+            background: #e6f7e6;
+            color: #52c41a;
+        }
+        .log-table .type-tag.up {
+            background: #ffeded;
+            color: #ff4d4f;
+        }
+        .log-table .type-tag.other {
+            background: #f0f0f0;
+            color: #999;
+        }
+        .log-table .log-date {
+            color: #999;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .log-table .operator-name {
+            color: #666;
+            font-size: 12px;
+        }
+        .log-table .log-reason {
+            color: #999;
+            font-size: 12px;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .log-empty {
+            text-align: center;
+            color: #bbb;
+            padding: 40px 0;
+            font-size: 14px;
+        }
+        .log-empty i {
+            font-size: 36px;
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0.4;
+        }
+
+        .log-modal .log-footer {
+            text-align: center;
+            padding-top: 14px;
+            border-top: 1px solid #f0f2f5;
+            margin-top: 4px;
+        }
+        .log-modal .log-footer .btn {
+            padding: 6px 28px;
+            border-radius: 6px;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f0f2f5;
+            color: #666;
+        }
+        .log-modal .log-footer .btn:hover {
+            background: #e0e4ea;
+        }
+
+        .log-stats {
+            display: flex;
+            gap: 20px;
+            padding: 8px 0 12px 0;
+            font-size: 13px;
+            color: #666;
+            border-bottom: 1px solid #f0f2f5;
+            margin-bottom: 10px;
+        }
+        .log-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .log-stats .num {
+            font-weight: 600;
+            color: #1a3a5c;
+        }
+    </style>
+</head>
+<body>
+    <div id="tableWrap"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/layui@2.9.8/dist/layui.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/table.js"></script>
+    <script>
+        var contractTable = new DataTable({
+            container: '#tableWrap',
+            title: '合同管理',
+            subtitle: '管理所有租赁合同及租金调整',
+            icon: '📄',
+            badge: '共 0 份',
+
+            api: ContractAPI,
+
+            // 开启导入导出
+            importable: true,
+            exportable: true,
+
+            searchFields: [
+                { value: 'contract_no', label: '合同编号' },
+                { value: 'counter_name', label: '专柜名称' },
+                { value: 'tenant_name', label: '承租人' },
+                { value: 'counter_code', label: '专柜编号' }
+            ],
+
+            advancedFields: [
+                { value: 'contract_no', label: '合同编号' },
+                { value: 'counter_name', label: '专柜名称' },
+                { value: 'tenant_name', label: '承租人' },
+                { value: 'counter_code', label: '专柜编号' },
+                { value: 'status', label: '状态' }
+            ],
+
+            stats: [
+                { id: 'statTotal', label: '合同总数', icon: '📄', calc: function(row) { return 1; } },
+                { id: 'statActive', label: '生效中', icon: '✅', color: 'green', calc: function(row) { return row.Status === 1 ? 1 : 0; } },
+                { id: 'statExpired', label: '已到期', icon: '⏰', color: 'gray', calc: function(row) { return row.Status === 2 ? 1 : 0; } },
+                { id: 'statTerminated', label: '已终止', icon: '⛔', color: 'red', calc: function(row) { return row.Status === 0 ? 1 : 0; } }
+            ],
+
+            columns: [
+                { field: 'Id', label: 'ID', width: '50px' },
+                { 
+                    field: 'ContractNo', 
+                    label: '合同编号', 
+                    width: '130px',
+                    render: function(value) {
+                        return '<span class="contract-no">' + (value || '-') + '</span>';
+                    }
+                },
+                { field: 'StoreName', label: '所属门店', width: '120px' },
+                { field: 'CounterCode', label: '专柜编号', width: '100px' },
+                { field: 'CounterName', label: '专柜名称', width: '130px' },
+                { field: 'TenantName', label: '承租人', width: '80px' },
+                { 
+                    field: 'RentAmount', 
+                    label: '月租金', 
+                    width: '100px',
+                    render: function(value) {
+                        var rent = parseFloat(value) || 0;
+                        return '<span class="money">¥' + rent.toFixed(2) + '</span>';
+                    }
+                },
+                { 
+                    field: 'Status', 
+                    label: '状态', 
+                    width: '90px',
+                    render: function(value) {
+                        var map = {
+                            0: { text: '已终止', cls: 'tag-terminated' },
+                            1: { text: '生效中', cls: 'tag-active' },
+                            2: { text: '已到期', cls: 'tag-expired' }
+                        };
+                        var info = map[value] || { text: '未知', cls: 'tag-expired' };
+                        return '<span class="tag ' + info.cls + '"><span class="dot"></span>' + info.text + '</span>';
+                    }
+                },
+                { 
+                    field: 'StartDate', 
+                    label: '合同期限', 
+                    width: '160px',
+                    render: function(value, row) {
+                        var start = row.StartDate || '';
+                        var end = row.EndDate || '';
+                        return '<span style="font-size:12px;color:#888;">' + start + ' ~ ' + end + '</span>';
+                    }
+                },
+                { field: 'CreateDate', label: '创建时间', width: '155px' }
+            ],
+
+            rowActions: [
+                { label: '编辑', class: 'btn-edit', icon: 'fas fa-edit', handler: 'showEdit' },
+                { label: '调租', class: 'btn-adjust', icon: 'fas fa-exchange-alt', handler: 'showAdjustRent' },
+                { label: '日志', class: 'btn-log', icon: 'fas fa-history', handler: 'showRentLog' },
+                { label: '删除', class: 'btn-delete', icon: 'fas fa-trash', handler: 'showDelete' }
+            ],
+
+            formFields: [
+                { id: 'fContractNo', field: 'contract_no', label: '合同编号', type: 'text', required: true, placeholder: '请输入合同编号' },
+                { id: 'fStoreId', field: 'store_id', label: '所属门店', type: 'select', required: true, options: [], placeholder: '请选择门店' },
+                { id: 'fCounterCode', field: 'counter_code', label: '专柜编号', type: 'text', required: true, placeholder: '请输入专柜编号' },
+                { id: 'fCounterName', field: 'counter_name', label: '专柜名称', type: 'text', required: true, placeholder: '请输入专柜名称' },
+                { id: 'fTenantName', field: 'tenant_name', label: '承租人', type: 'text', required: true, placeholder: '请输入承租人姓名' },
+                { id: 'fTenantPhone', field: 'tenant_phone', label: '承租人电话', type: 'text', placeholder: '请输入联系电话' },
+                { id: 'fContractPeriod', field: 'contract_period', label: '合同期', type: 'text', placeholder: '如: 2026-01-01至2026-12-31' },
+                { id: 'fChargeStandard', field: 'charge_standard', label: '收费标准', type: 'text', placeholder: '如: 固定租金' },
+                { id: 'fRentAmount', field: 'rent_amount', label: '月租金', type: 'number', required: true, placeholder: '请输入月租金金额' },
+                { id: 'fDepositAmount', field: 'deposit_amount', label: '保证金', type: 'number', placeholder: '请输入保证金金额' },
+                { id: 'fStartDate', field: 'start_date', label: '开始日期', type: 'date', required: true },
+                { id: 'fEndDate', field: 'end_date', label: '结束日期', type: 'date', required: true },
+                { 
+                    id: 'fPaymentCycle', 
+                    field: 'payment_cycle', 
+                    label: '缴费周期', 
+                    type: 'select',
+                    options: [
+                        { value: 1, label: '月付' },
+                        { value: 2, label: '季付' },
+                        { value: 3, label: '半年付' },
+                        { value: 4, label: '年付' }
+                    ]
+                },
+                { 
+                    id: 'fStatus', 
+                    field: 'status', 
+                    label: '状态', 
+                    type: 'select',
+                    options: [
+                        { value: 1, label: '生效中' },
+                        { value: 2, label: '已到期' },
+                        { value: 0, label: '已终止' }
+                    ]
+                },
+                { id: 'fRemarks', field: 'remarks', label: '备注', type: 'textarea', placeholder: '请输入备注信息' }
+            ]
+        });
+
+        // ============================================================
+        //  加载门店选项
+        // ============================================================
+        function loadStoreOptions() {
+            var user = getCurrentUser();
+            var params = {};
+            if (user && user.Id) {
+                params._user_id = user.Id;
+            }
+            StoreAPI.list(params).then(function(stores) {
+                var options = [];
+                if (stores && stores.length > 0) {
+                    stores.forEach(function(s) {
+                        options.push({
+                            value: s.Id,
+                            label: s.StoreName + ' (' + s.StoreCode + ')'
+                        });
+                    });
+                }
+                contractTable.config.formFields.forEach(function(field) {
+                    if (field.id === 'fStoreId') {
+                        field.options = options;
+                    }
+                });
+            }).catch(function(err) {
+                console.error('加载门店列表失败:', err);
+            });
+        }
+
+        setTimeout(function() {
+            loadStoreOptions();
+        }, 300);
+
+        // ============================================================
+        //  重写 buildFormHtml - 两列布局
+        // ============================================================
+        contractTable.buildFormHtml = function(data, action) {
+            var isEdit = action === 'edit';
+            var html = '<div class="modal-form">';
+            html += '<input type="hidden" id="editId" value="' + (isEdit ? (data.Id || '') : '') + '">';
+
+            var leftFields = ['fContractNo', 'fStoreId', 'fCounterCode', 'fCounterName', 
+                              'fTenantName', 'fTenantPhone', 'fContractPeriod', 'fChargeStandard'];
+            var rightFields = ['fRentAmount', 'fDepositAmount', 'fStartDate', 'fEndDate', 
+                               'fPaymentCycle', 'fStatus'];
+            var fullFields = ['fRemarks'];
+
+            html += '<div class="form-row-2">';
+            html += '<div>';
+            leftFields.forEach(function(fieldId) {
+                html += buildFieldHtml(fieldId, data, isEdit);
+            });
+            html += '</div>';
+            html += '<div>';
+            rightFields.forEach(function(fieldId) {
+                html += buildFieldHtml(fieldId, data, isEdit);
+            });
+            html += '</div>';
+            html += '</div>';
+
+            fullFields.forEach(function(fieldId) {
+                html += buildFieldHtml(fieldId, data, isEdit);
+            });
+
+            html += '<div class="form-footer">';
+            html += '<button class="btn btn-default" onclick="window._table.closeModal()">取消</button>';
+            html += '<button class="btn btn-primary" onclick="window._table.submitForm()"><i class="fas fa-save"></i> ' + (isEdit ? '保存' : '添加') + '</button>';
+            html += '</div></div>';
+            return html;
+
+            function buildFieldHtml(fieldId, data, isEdit) {
+                var field = null;
+                contractTable.config.formFields.forEach(function(f) {
+                    if (f.id === fieldId) field = f;
+                });
+                if (!field) return '';
+
+                var value = isEdit ? contractTable.getFieldValue(data, field.field) : '';
+                if (value === undefined || value === null) value = '';
+                var required = field.required ? '<span class="required">*</span> ' : '';
+                var inputHtml = '';
+
+                if (field.type === 'select') {
+                    var options = '';
+                    if (field.options && field.options.length > 0) {
+                        field.options.forEach(function(opt) {
+                            var selected = (value == opt.value) ? 'selected' : '';
+                            options += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
+                        });
+                    }
+                    inputHtml = '<select id="' + field.id + '">' + options + '</select>';
+                } else if (field.type === 'textarea') {
+                    inputHtml = '<textarea id="' + field.id + '" placeholder="' + (field.placeholder || '') + '">' + (value || '') + '</textarea>';
+                } else if (field.type === 'number') {
+                    inputHtml = '<input type="number" step="0.01" id="' + field.id + '" value="' + (value || '') + '" placeholder="' + (field.placeholder || '') + '">';
+                } else if (field.type === 'date') {
+                    var today = new Date().toISOString().split('T')[0];
+                    var val = value || today;
+                    inputHtml = '<input type="date" id="' + field.id + '" value="' + val + '">';
+                } else {
+                    inputHtml = '<input type="' + (field.type || 'text') + '" id="' + field.id + '" value="' + (value || '') + '" placeholder="' + (field.placeholder || '') + '">';
+                }
+
+                return '<div class="form-group">' +
+                    '<label>' + required + field.label + '</label>' +
+                    inputHtml +
+                    (field.help ? '<div class="help-text">' + field.help + '</div>' : '') +
+                    '</div>';
+            }
+        };
+
+        // ============================================================
+        //  重写 showEdit
+        // ============================================================
+        contractTable.showEdit = function(id) {
+            if (!contractTable.layer) {
+                alert('LayUI 未加载');
+                return;
+            }
+            contractTable.layer.load(1);
+            ContractAPI.get(id).then(function(data) {
+                contractTable.layer.closeAll('loading');
+                if (!data) {
+                    contractTable.layer.msg('数据不存在', {icon: 5});
+                    return;
+                }
+                loadStoreOptions();
+                var html = contractTable.buildFormHtml(data, 'edit');
+                contractTable.openModal('<i class="fas fa-edit"></i> 编辑合同', html);
+            }).catch(function(err) {
+                contractTable.layer.closeAll('loading');
+                contractTable.layer.msg('获取数据失败: ' + err, {icon: 5});
+            });
+        };
+
+        // ============================================================
+        //  重写 showAdd
+        // ============================================================
+        contractTable.showAdd = function() {
+            loadStoreOptions();
+            var html = contractTable.buildFormHtml({}, 'add');
+            contractTable.openModal('<i class="fas fa-plus"></i> 添加合同', html);
+        };
+
+        // ============================================================
+        //  调租功能
+        // ============================================================
+        var adjustModalIndex = null;
+
+        function showAdjustRent(contractId) {
+            if (!contractTable.layer) return;
+            contractTable.layer.load(1);
+            ContractAPI.get(contractId).then(function(data) {
+                contractTable.layer.closeAll('loading');
+                if (!data) {
+                    contractTable.layer.msg('合同不存在', {icon: 5});
+                    return;
+                }
+                var html = buildAdjustRentForm(data);
+                openAdjustRentModal(html, data);
+            }).catch(function(err) {
+                contractTable.layer.closeAll('loading');
+                contractTable.layer.msg('获取合同信息失败: ' + err, {icon: 5});
+            });
+        }
+
+        function buildAdjustRentForm(data) {
+            var today = new Date().toISOString().split('T')[0];
+            var user = getCurrentUser();
+            var operatorName = user ? (user.FullName || user.UserName) : '';
+            var currentRent = parseFloat(data.RentAmount) || 0;
+
+            return `
+                <div class="modal-form">
+                    <input type="hidden" id="adjustContractId" value="${data.Id}">
+                    
+                    <div style="background:#f7f9fc;padding:10px 14px;border-radius:6px;margin-bottom:16px;">
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                            <span><strong>合同编号：</strong>${data.ContractNo}</span>
+                            <span><strong>专柜：</strong>${data.CounterName}</span>
+                            <span><strong>当前租金：</strong><span style="color:#2d6a9f;font-weight:700;">¥${currentRent.toFixed(2)}</span></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><span class="required">*</span> 新租金金额</label>
+                        <input type="number" id="fNewRentAmount" step="0.01" placeholder="请输入新的月租金金额">
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label><span class="required">*</span> 调整日期</label>
+                            <input type="date" id="fAdjustmentDate" value="${today}">
+                        </div>
+                        <div class="form-group">
+                            <label><span class="required">*</span> 生效日期</label>
+                            <input type="date" id="fEffectiveDate" value="${today}">
+                            <div class="help-text">从该日期开始，合同租金将变更为新租金</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label>调整类型</label>
+                            <select id="fAdjustmentType">
+                                <option value="1">降租</option>
+                                <option value="2">涨租</option>
+                                <option value="3">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>操作人</label>
+                            <input type="text" id="fOperatorName" value="${operatorName}" placeholder="操作人姓名">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>调整原因</label>
+                        <textarea id="fReason" placeholder="请输入调整原因（选填）" style="height:60px;"></textarea>
+                    </div>
+
+                    <div class="form-footer">
+                        <button class="btn btn-default" onclick="closeAdjustRentModal()">取消</button>
+                        <button class="btn btn-primary" onclick="submitAdjustRent()"><i class="fas fa-save"></i> 确认调整</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAdjustRentModal(html, data) {
+            if (!contractTable.layer) return;
+            adjustModalIndex = contractTable.layer.open({
+                type: 1,
+                title: '<i class="fas fa-exchange-alt" style="color:#faad14;"></i> 租金调整 - ' + data.ContractNo,
+                area: ['560px', 'auto'],
+                content: html,
+                shadeClose: false,
+                resize: false,
+                maxHeight: '90vh'
+            });
+        }
+
+        function closeAdjustRentModal() {
+            if (adjustModalIndex !== null && adjustModalIndex !== undefined) {
+                contractTable.layer.close(adjustModalIndex);
+                adjustModalIndex = null;
+            }
+        }
+
+        function submitAdjustRent() {
+            var contractId = document.getElementById('adjustContractId').value;
+            var newRentAmount = document.getElementById('fNewRentAmount').value;
+            var adjustmentDate = document.getElementById('fAdjustmentDate').value;
+            var effectiveDate = document.getElementById('fEffectiveDate').value;
+            var adjustmentType = document.getElementById('fAdjustmentType').value;
+            var operatorName = document.getElementById('fOperatorName').value.trim();
+            var reason = document.getElementById('fReason').value.trim();
+
+            if (!newRentAmount || parseFloat(newRentAmount) <= 0) {
+                contractTable.layer.msg('请输入有效的新租金金额', {icon: 5});
+                return;
+            }
+            if (!adjustmentDate) {
+                contractTable.layer.msg('请选择调整日期', {icon: 5});
+                return;
+            }
+            if (!effectiveDate) {
+                contractTable.layer.msg('请选择生效日期', {icon: 5});
+                return;
+            }
+
+            var user = getCurrentUser();
+            var data = {
+                contract_id: parseInt(contractId),
+                new_rent_amount: parseFloat(newRentAmount),
+                adjustment_date: adjustmentDate,
+                effective_date: effectiveDate,
+                adjustment_type: parseInt(adjustmentType),
+                reason: reason,
+                creater: user ? user.Id : null,
+                operator_name: operatorName || (user ? user.FullName || user.UserName : '')
+            };
+
+            if (!contractTable.layer) return;
+            contractTable.layer.load(1);
+
+            ContractAPI.adjustRent(data).then(function(result) {
+                contractTable.layer.closeAll('loading');
+                var oldRent = parseFloat(result.old_rent) || 0;
+                var newRent = parseFloat(result.new_rent) || 0;
+                contractTable.layer.msg('租金调整成功！原租金 ¥' + oldRent.toFixed(2) + ' → 新租金 ¥' + newRent.toFixed(2), {icon: 1});
+                closeAdjustRentModal();
+                contractTable.loadData();
+            }).catch(function(err) {
+                contractTable.layer.closeAll('loading');
+                contractTable.layer.msg('调整失败: ' + err, {icon: 5});
+            });
+        }
+
+        // ============================================================
+        //  查看调租日志
+        // ============================================================
+        var logModalIndex = null;
+
+        function showRentLog(contractId) {
+            if (!contractTable.layer) return;
+            contractTable.layer.load(1);
+            RentLogAPI.byContract(contractId).then(function(logs) {
+                contractTable.layer.closeAll('loading');
+                var html = buildRentLogHtml(logs, contractId);
+                openRentLogModal(html);
+            }).catch(function(err) {
+                contractTable.layer.closeAll('loading');
+                contractTable.layer.msg('加载日志失败: ' + err, {icon: 5});
+            });
+        }
+
+        function buildRentLogHtml(logs, contractId) {
+            var html = '<div class="log-modal">';
+            html += '<div class="section-title"><i class="fas fa-history"></i> 调租历史记录</div>';
+
+            if (!logs || logs.length === 0) {
+                html += '<div class="log-empty"><i class="fas fa-inbox"></i>暂无调租记录</div>';
+            } else {
+                var totalCount = logs.length;
+                var downCount = 0, upCount = 0;
+                logs.forEach(function(log) {
+                    if (log.AdjustmentType === 1) downCount++;
+                    else if (log.AdjustmentType === 2) upCount++;
+                });
+                
+                html += '<div class="log-stats">';
+                html += '<span>📋 共 <span class="num">' + totalCount + '</span> 次调整</span>';
+                html += '<span>📉 降租 <span class="num" style="color:#52c41a;">' + downCount + '</span> 次</span>';
+                html += '<span>📈 涨租 <span class="num" style="color:#ff4d4f;">' + upCount + '</span> 次</span>';
+                html += '</div>';
+
+                html += '<div class="log-list">';
+                html += '<table class="log-table">';
+                html += '<thead><tr>';
+                html += '<th style="width:40px;">#</th>';
+                html += '<th style="min-width:80px;">原租金</th>';
+                html += '<th style="min-width:80px;">新租金</th>';
+                html += '<th style="width:60px;">类型</th>';
+                html += '<th style="width:90px;">生效日期</th>';
+                html += '<th style="width:80px;">操作人</th>';
+                html += '<th style="min-width:80px;">调整原因</th>';
+                html += '<th style="width:140px;">调整时间</th>';
+                html += '</tr></thead>';
+                html += '<tbody>';
+
+                logs.forEach(function(log, index) {
+                    var typeMap = { 1: { text: '降租', cls: 'down' }, 2: { text: '涨租', cls: 'up' }, 3: { text: '其他', cls: 'other' } };
+                    var typeInfo = typeMap[log.AdjustmentType] || { text: '其他', cls: 'other' };
+                    var oldRent = parseFloat(log.OldRentAmount) || 0;
+                    var newRent = parseFloat(log.NewRentAmount) || 0;
+                    var idx = index + 1;
+                    
+                    html += '<tr>';
+                    html += '<td style="color:#bbb;">' + idx + '</td>';
+                    html += '<td><span class="old-rent">¥' + oldRent.toFixed(2) + '</span></td>';
+                    html += '<td><span class="new-rent">¥' + newRent.toFixed(2) + '</span></td>';
+                    html += '<td><span class="type-tag ' + typeInfo.cls + '">' + typeInfo.text + '</span></td>';
+                    html += '<td>' + (log.EffectiveDate || '-') + '</td>';
+                    html += '<td class="operator-name">' + (log.OperatorName || '系统') + '</td>';
+                    html += '<td class="log-reason">' + (log.Reason || '-') + '</td>';
+                    html += '<td class="log-date">' + (log.CreateDate || '-') + '</td>';
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                html += '</div>';
+            }
+
+            html += '<div class="log-footer">';
+            html += '<button class="btn" onclick="closeRentLogModal()"><i class="fas fa-times"></i> 关闭</button>';
+            html += '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function openRentLogModal(html) {
+            if (!contractTable.layer) return;
+            logModalIndex = contractTable.layer.open({
+                type: 1,
+                title: '<i class="fas fa-history" style="color:#2d6a9f;"></i> 调租历史',
+                area: ['750px', 'auto'],
+                content: html,
+                shadeClose: true,
+                resize: false,
+                maxHeight: '80vh'
+            });
+        }
+
+        function closeRentLogModal() {
+            if (logModalIndex !== null && logModalIndex !== undefined) {
+                contractTable.layer.close(logModalIndex);
+                logModalIndex = null;
+            }
+        }
+
+        contractTable.showAdjustRent = showAdjustRent;
+        contractTable.showRentLog = showRentLog;
+
+        // ============================================================
+        //  预加载门店数据
+        // ============================================================
+        var originalOnLoad = contractTable.config.onLoad;
+        contractTable.config.onLoad = function(data) {
+            loadStoreOptions();
+            if (originalOnLoad && typeof originalOnLoad === 'function') {
+                originalOnLoad(data);
+            }
+        };
+    </script>
+</body>
+</html>
